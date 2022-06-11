@@ -1,5 +1,4 @@
-# smashline_robin_improved
-What if Robin had actually been finished being coded.
+# What if Robin had actually been finished being coded.
 --------------------------------------------------------------------------
 Change Log:
 - spells and Levin-sword charge isn't consumed until the attack actually comes out
