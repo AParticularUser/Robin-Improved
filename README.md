@@ -1,5 +1,8 @@
 # What if Robin had actually been finished being coded.
 --------------------------------------------------------------------------
+Robin has always felt under-baked. And after looking through his scripts I can confirm this is the case. 
+This mod aims to correct minor errors in vinilla while also making him more casual-friendly. 
+
 Change Log:
 - spells and Levin-sword charge isn't consumed until the attack actually comes out
 - spells and Levin-sword have a pasive recharge:
