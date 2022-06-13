@@ -51,7 +51,7 @@ Change Log:
 	* Robin fully recharges spells and Levin-sword excluding Rizaia
 	* Robin can use up-special-1 again if it was already used
 	* Robin is no longer put into special-fall (why was that a thing before)
-- down-special revival time: 1800 -> 780
+- down-special revival time: 1800 -> 780 (30sec-> 13sec)
 - holding side-taunt will deplete the current spell-book and give it as an item
 	* if Robin is already holding an item he will toss the book instead (like if he were to normally use up a spell-book)
 - up-taunt swaps the current sword if available (Levin <-> Bronze)
