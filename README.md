@@ -58,12 +58,12 @@ This mod aims to correct minor errors in vinilla while also making him more casu
 
 - adjusted Down-Special active frames to come out faster and lasts longer: 15-18 -> 8-24
 - incresed Down-Special total frames: 49 -> 54
-- if down-special is successful:
+- if Down-Special is successful:
 	- the enemy is inflicted with the "curse" effect
 	- Robin fully recharges Levin-sword and Tomes excluding Rizaia
-	- Robin can use up-special-1 again if it was already used
-	- Robin is no longer put into special-fall (why was that a thing before)
-- down-special revival time: 1800 -> 780
+	- Robin can use Up-Special-1 again if it was already used
+	- Robin is no longer put into free-fall (why was that a thing before)
+- Down-Special revival time: 1800 -> 780
 
 ### OTHER
 - Pummel requires and consumes dark magic
