@@ -22,7 +22,8 @@ This mod aims to correct minor errors in vinilla while also making him more casu
 	- Jab-3: -1
 	- Up-Special 1 & 2: -1
 	- Rapid-Jab start, hold, and finish: -1 (each)
-	- Down-Special: -7
+	- Down-Special start: -6
+	- Down-Special hold: -1
 	- Grab-Pummel: -1
 - Robin no longer tosses a depleted Levin-sword during the move and instead will wait till the move ends (like Tomes)
 - fixed Levin attack effects not matching active frames
@@ -54,10 +55,10 @@ This mod aims to correct minor errors in vinilla while also making him more casu
 - split Up-Special into two parts:
 	- Up-Special-1 doesn't put Robin into free-fall and can only be used once per air time unless hit
 	- Up-Special-2 behaves normally and will put Robin into free-fall
-- Add missing animation for the grounded version of Up-Special failing
-
-- adjusted Down-Special active frames to come out faster and lasts longer: 15-18 -> 8-24
-- incresed Down-Special total frames: 49 -> 54
+- Added missing animation for the grounded version of Up-Special failing
+- if Side-Special fails, it can be acted out of sooner (faf:44)
+- Down-Special comes out faster: frame 15 -> frame 8
+- holding Special continues the grab and consumes a point every 20 frames
 - if Down-Special is successful:
 	- the enemy is inflicted with the "curse" effect
 	- Robin fully recharges Levin-sword and Tomes excluding Rizaia
@@ -71,3 +72,4 @@ This mod aims to correct minor errors in vinilla while also making him more casu
 - holding Side-Taunt will deplete the current Tome and give it as an item
 	- if Robin is already holding an item he will toss the Tome instead (like if he were to normally use up a Tome)
 - Up-Taunt swaps the current sword if available (Levin <-> Bronze)
+
