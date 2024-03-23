@@ -1,7 +1,7 @@
 # What if Robin was actually finished being coded.
 --------------------------------------------------------------------------
 Robin has always felt under-baked. And after looking through his scripts I can confirm this is the case. 
-This mod aims to correct minor errors in vinilla while also making him more casual-friendly. 
+This mod aims to correct minor errors in vinilla while also adding new features.
 
 ## Change Log
 
