@@ -116,6 +116,13 @@ unsafe extern "C" fn special_s_game(agent: &mut L2CAgentBase) {
         }
         // WorkModule::on_flag(agent.module_accessor, *FIGHTER_REFLET_STATUS_SPECIAL_S_FLAG_TRY);
     }
+    frame(agent.lua_state_agent, 44.0);
+    if macros::is_excute(agent) {
+        if WorkModule::is_flag(agent.module_accessor, *FIGHTER_REFLET_STATUS_SPECIAL_S_FLAG_SHOOT_OK) == false {
+            CancelModule::enable_cancel(agent.module_accessor);
+        }
+    }
+
 }
 unsafe extern "C" fn special_s_eff(agent: &mut L2CAgentBase) {
     if WorkModule::is_flag(agent.module_accessor, *FIGHTER_REFLET_STATUS_SPECIAL_S_FLAG_SHOOT_OK) {

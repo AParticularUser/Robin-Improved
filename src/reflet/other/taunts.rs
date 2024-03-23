@@ -14,7 +14,8 @@ unsafe fn consume_book(agent: &mut L2CAgentBase) {
         if WorkModule::get_int(agent.module_accessor, *FIGHTER_REFLET_INSTANCE_WORK_ID_INT_SPECIAL_N_CURRENT_POINT) > 0 {
             WorkModule::set_int(agent.module_accessor, 0, *FIGHTER_REFLET_INSTANCE_WORK_ID_INT_SPECIAL_N_CURRENT_POINT);
             WorkModule::set_int(agent.module_accessor, 0, *FIGHTER_REFLET_INSTANCE_WORK_ID_INT_SPECIAL_N_THUNDER_KIND);
-            //WorkModule::set_int(fighter.module_accessor, *FIGHTER_REFLET_MAGIC_KIND_THUNDER, *FIGHTER_REFLET_INSTANCE_WORK_ID_INT_LAST_USED_MAGIC_KIND);
+            FighterSpecializer_Reflet::change_grimoire(agent.module_accessor as *mut FighterModuleAccessor, *FIGHTER_REFLET_MAGIC_KIND_THUNDER);
+            // WorkModule::set_int(fighter.module_accessor, *FIGHTER_REFLET_MAGIC_KIND_THUNDER, *FIGHTER_REFLET_INSTANCE_WORK_ID_INT_LAST_USED_MAGIC_KIND);
             macros::EFFECT_OFF_KIND(agent, Hash40::new("reflet_thunder_max"), true, true);
             EffectModule::remove_common(agent.module_accessor, Hash40::new("charge_max"));
             current_magic = *FIGHTER_REFLET_MAGIC_KIND_THUNDER;

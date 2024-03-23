@@ -37,18 +37,18 @@ unsafe extern "C" fn resurrection_book_eff(agent: &mut L2CAgentBase) {
     if macros::is_excute(agent) {
         let magic_kind = WorkModule::get_int(agent.module_accessor, *FIGHTER_REFLET_INSTANCE_WORK_ID_INT_TEMP_MAGIC_KIND);
         if magic_kind == *FIGHTER_REFLET_MAGIC_KIND_GIGA_FIRE {
-            macros::EFFECT_FOLLOW(agent, Hash40::new("reflet_gigafire_hold"), Hash40::new("handl"), 0, 0, 0, 0, 0, 0, 0.4, true);
+            macros::EFFECT_FOLLOW(agent, Hash40::new("reflet_gigafire_hold"), Hash40::new("havel"), 0, 0, 0, 0, 0, 0, 0.4, true);
             macros::LAST_EFFECT_SET_RATE(agent, 0.5);
         }else if magic_kind == *FIGHTER_REFLET_MAGIC_KIND_EL_WIND {
-            macros::EFFECT_FOLLOW(agent, Hash40::new("reflet_magic_wind"), Hash40::new("handl"), 0, 0, 0, 0, 0, 0, 0.35, true);
+            macros::EFFECT_FOLLOW(agent, Hash40::new("reflet_magic_wind"), Hash40::new("havel"), 0, 0, 0, 0, 0, 0, 0.32, true);
         }else if magic_kind == *FIGHTER_REFLET_MAGIC_KIND_RIZAIA {
-            macros::EFFECT_FOLLOW(agent, Hash40::new("reflet_rizaia"), Hash40::new("handl"), 0, 0, 0, 0, 0, 0, 0.4, true);
+            macros::EFFECT_FOLLOW(agent, Hash40::new("reflet_rizaia"), Hash40::new("havel"), 0, 0, 0, 0, 0, 0, 0.4, true);
         }
         else {
-            macros::EFFECT_FOLLOW(agent, Hash40::new("reflet_revival_th"), Hash40::new("handl"), 0, 0, 0, 0, 0, 0, 0.4, true);
+            macros::EFFECT_FOLLOW(agent, Hash40::new("reflet_revival_th"), Hash40::new("havel"), 0, 0, 0, 0, 0, 0, 0.4, true);
         }
     }
-    frame(agent.lua_state_agent, 35.0);
+    frame(agent.lua_state_agent, 36.0);
     if macros::is_excute(agent) {
         let magic_kind = WorkModule::get_int(agent.module_accessor, *FIGHTER_REFLET_INSTANCE_WORK_ID_INT_TEMP_MAGIC_KIND);
         if magic_kind == *FIGHTER_REFLET_MAGIC_KIND_EL_WIND {

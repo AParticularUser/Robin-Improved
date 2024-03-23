@@ -15,13 +15,28 @@ pub unsafe fn special_hi_2_enable_reset_check(agent: &mut L2CFighterCommon) {
     if VarModule::is_flag(agent.module_accessor, instance::REFLET_FLAG_SPECIAL_HI_2_ENABLE) {
         if (agent.global_table[global_table::SITUATION_KIND].get_i32() != *SITUATION_KIND_AIR 
         && StatusModule::status_kind(agent.module_accessor) != *FIGHTER_STATUS_KIND_SPECIAL_HI)
-        || is_damage_check(agent.module_accessor) {
+        || is_damage_check(agent.module_accessor) 
+        || agent.global_table[global_table::STATUS_KIND] == *FIGHTER_REFLET_STATUS_KIND_FINAL_HIT {
             VarModule::off_flag(agent.module_accessor, instance::REFLET_FLAG_SPECIAL_HI_2_ENABLE);
         }
     }
 }
 // if up-special-1 was already used, change to up-special-2
 unsafe extern "C" fn special_hi_status_pre(agent: &mut L2CFighterCommon) -> L2CValue {
+    //update hud
+    agent.clear_lua_stack();
+    let fighter : *mut Fighter = std::mem::transmute(sv_system::battle_object(agent.lua_state_agent));
+    FighterSpecializer_Reflet::change_hud_kind(fighter, *FIGHTER_REFLET_MAGIC_KIND_EL_WIND);
+    FighterSpecializer_Reflet::change_grimoire(agent.module_accessor as *mut FighterModuleAccessor, *FIGHTER_REFLET_MAGIC_KIND_EL_WIND);
+    WorkModule::set_int(agent.module_accessor, *FIGHTER_REFLET_MAGIC_KIND_EL_WIND, *FIGHTER_REFLET_INSTANCE_WORK_ID_INT_LAST_USED_MAGIC_KIND);
+    if WorkModule::get_int(agent.module_accessor, *FIGHTER_REFLET_INSTANCE_WORK_ID_INT_SPECIAL_HI_CURRENT_POINT) <= 0 {
+        agent.change_status(FIGHTER_REFLET_STATUS_KIND_SPECIAL_HI_FAIL.into(), true.into());
+        return true.into()
+    }
+    if VarModule::is_flag(agent.module_accessor, instance::REFLET_FLAG_SPECIAL_HI_2_ENABLE) {
+        agent.change_status(FIGHTER_REFLET_STATUS_KIND_SPECIAL_HI_2.into(), true.into());
+        return true.into()
+    }
     StatusModule::init_settings(
         agent.module_accessor,
         SituationKind(*SITUATION_KIND_NONE),
@@ -46,22 +61,6 @@ unsafe extern "C" fn special_hi_status_pre(agent: &mut L2CFighterCommon) -> L2CV
         *FIGHTER_POWER_UP_ATTACK_BIT_SPECIAL_HI as u32,
         0
     );
-    //update hud
-    agent.clear_lua_stack();
-    let fighter : *mut Fighter = std::mem::transmute(sv_system::battle_object(agent.lua_state_agent));
-    FighterSpecializer_Reflet::change_hud_kind(fighter, *FIGHTER_REFLET_MAGIC_KIND_EL_WIND);
-    FighterSpecializer_Reflet::change_grimoire(agent.module_accessor as *mut FighterModuleAccessor, *FIGHTER_REFLET_MAGIC_KIND_EL_WIND);
-    WorkModule::set_int(agent.module_accessor, *FIGHTER_REFLET_MAGIC_KIND_EL_WIND, *FIGHTER_REFLET_INSTANCE_WORK_ID_INT_LAST_USED_MAGIC_KIND);
-
-    if WorkModule::get_int(agent.module_accessor, *FIGHTER_REFLET_INSTANCE_WORK_ID_INT_SPECIAL_HI_CURRENT_POINT) <= 0 {
-        agent.change_status(FIGHTER_REFLET_STATUS_KIND_SPECIAL_HI_FAIL.into(), true.into());
-        return true.into()
-    }
-    if VarModule::is_flag(agent.module_accessor, instance::REFLET_FLAG_SPECIAL_HI_2_ENABLE) {
-        agent.change_status(FIGHTER_REFLET_STATUS_KIND_SPECIAL_HI_2.into(), true.into());
-        return true.into()
-    }
-    VarModule::on_flag(agent.module_accessor, instance::REFLET_FLAG_SPECIAL_HI_2_ENABLE);
     false.into()
 }
 // removed special-fall from up-special-1
@@ -83,6 +82,8 @@ unsafe extern "C" fn special_hi_status_main(agent: &mut L2CFighterCommon) -> L2C
         WorkModule::set_float(agent.module_accessor, landing_frame, *FIGHTER_INSTANCE_WORK_ID_FLOAT_LANDING_FRAME);
         WorkModule::off_flag(agent.module_accessor, *FIGHTER_REFLET_STATUS_SPECIAL_HI_FLAG_TRY_2ND);
         WorkModule::off_flag(agent.module_accessor, *FIGHTER_REFLET_STATUS_SPECIAL_HI_FLAG_JUMP);
+        VarModule::on_flag(agent.module_accessor, instance::REFLET_FLAG_SPECIAL_HI_2_ENABLE);
+        VarModule::off_flag(agent.module_accessor, status::REFLET_FLAG_SPECIAL_HI_ENABLE_LANDING);
         agent.sub_shift_status_main(L2CValue::Ptr(special_hi_status_main_loop as *const () as _));
     }
     0.into()
@@ -98,21 +99,33 @@ unsafe fn special_hi_status_main_loop(agent: &mut L2CFighterCommon) -> L2CValue 
             return true.into()
         }
     }
-    if agent.global_table[global_table::SITUATION_KIND].get_i32() == *SITUATION_KIND_GROUND 
-    && agent.global_table[global_table::PREV_SITUATION_KIND].get_i32() != *SITUATION_KIND_GROUND {
-        if CancelModule::is_enable_cancel(agent.module_accessor) {
-            agent.change_status(FIGHTER_STATUS_KIND_LANDING.into(), false.into());
-        }else {
-            agent.change_status(FIGHTER_STATUS_KIND_LANDING_FALL_SPECIAL.into(), false.into());
+    if VarModule::is_flag(agent.module_accessor, status::REFLET_FLAG_SPECIAL_HI_ENABLE_LANDING) {
+        if agent.global_table[global_table::SITUATION_KIND].get_i32() == *SITUATION_KIND_GROUND {
+            if CancelModule::is_enable_cancel(agent.module_accessor) {
+                agent.change_status(FIGHTER_STATUS_KIND_LANDING.into(), false.into());
+            }else {
+                agent.change_status(FIGHTER_STATUS_KIND_LANDING_FALL_SPECIAL.into(), false.into());
+            }
+            return true.into()
         }
-        return true.into()
+    }else if agent.global_table[global_table::SITUATION_KIND].get_i32() != agent.global_table[global_table::PREV_SITUATION_KIND].get_i32() {
+        if agent.global_table[global_table::SITUATION_KIND].get_i32() == *SITUATION_KIND_GROUND {
+            GroundModule::correct(agent.module_accessor, GroundCorrectKind(*GROUND_CORRECT_KIND_GROUND_CLIFF_STOP));
+            KineticModule::change_kinetic(agent.module_accessor, *FIGHTER_KINETIC_TYPE_GROUND_STOP);
+            MotionModule::change_motion_inherit_frame_keep_rate(agent.module_accessor, Hash40::new("special_hi"), -1.0, 1.0, 0.0);
+            WorkModule::off_flag(agent.module_accessor, *FIGHTER_REFLET_INSTANCE_WORK_ID_FLAG_SPECIAL_HI_AIR);
+        }else {
+            GroundModule::correct(agent.module_accessor, GroundCorrectKind(*GROUND_CORRECT_KIND_AIR));
+            KineticModule::change_kinetic(agent.module_accessor, *FIGHTER_KINETIC_TYPE_AIR_STOP);
+            MotionModule::change_motion_inherit_frame_keep_rate(agent.module_accessor, Hash40::new("special_air_hi"), -1.0, 1.0, 0.0);
+            WorkModule::on_flag(agent.module_accessor, *FIGHTER_REFLET_INSTANCE_WORK_ID_FLAG_SPECIAL_HI_AIR);
+        }
     }
     if agent.sub_transition_group_check_air_cliff().get_bool() {
         return true.into()
     }
     if WorkModule::is_flag(agent.module_accessor, *FIGHTER_REFLET_STATUS_SPECIAL_HI_FLAG_TRY_2ND) 
-    && (ControlModule::get_command_flag_cat(agent.module_accessor, 0) & *FIGHTER_PAD_CMD_CAT1_FLAG_SPECIAL_HI) != 0 
-    {
+    && (ControlModule::get_command_flag_cat(agent.module_accessor, 0) & *FIGHTER_PAD_CMD_CAT1_FLAG_SPECIAL_HI) != 0 {
         if WorkModule::get_int(agent.module_accessor, *FIGHTER_REFLET_INSTANCE_WORK_ID_INT_SPECIAL_HI_CURRENT_POINT) > 0 {
             agent.change_status(FIGHTER_REFLET_STATUS_KIND_SPECIAL_HI_2.into(), false.into());
         }else {
@@ -122,6 +135,7 @@ unsafe fn special_hi_status_main_loop(agent: &mut L2CFighterCommon) -> L2CValue 
     }
     if WorkModule::is_flag(agent.module_accessor, *FIGHTER_REFLET_STATUS_SPECIAL_HI_FLAG_JUMP) {
         WorkModule::off_flag(agent.module_accessor, *FIGHTER_REFLET_STATUS_SPECIAL_HI_FLAG_JUMP);
+        VarModule::on_flag(agent.module_accessor, status::REFLET_FLAG_SPECIAL_HI_ENABLE_LANDING);
         GroundModule::set_correct(agent.module_accessor, GroundCorrectKind(*GROUND_CORRECT_KIND_AIR));
         let jump = FighterSpecializer_Reflet::get_special_hi_jump_speed(agent.module_accessor as *mut smash::app::FighterModuleAccessor);
         //gravity
@@ -214,7 +228,7 @@ unsafe extern "C" fn special_hi_game(agent: &mut L2CAgentBase) {
         ArticleModule::generate_article(agent.module_accessor, *FIGHTER_REFLET_GENERATE_ARTICLE_ELWIND, false, -1);
         WorkModule::on_flag(agent.module_accessor, *FIGHTER_REFLET_STATUS_SPECIAL_HI_FLAG_JUMP);
     }
-    frame(agent.lua_state_agent, 12.0);
+    frame(agent.lua_state_agent, 22.0);//12
     if macros::is_excute(agent) {
         WorkModule::on_flag(agent.module_accessor, *FIGHTER_REFLET_STATUS_SPECIAL_HI_FLAG_TRY_2ND);
     }
@@ -229,7 +243,9 @@ unsafe extern "C" fn special_hi_game(agent: &mut L2CAgentBase) {
 }
 // only uses duability after attack comes out
 unsafe extern "C" fn special_hi_2_game(agent: &mut L2CAgentBase) {
+    macros::FT_MOTION_RATE(agent, 0.45);
     frame(agent.lua_state_agent, 17.0);
+    macros::FT_MOTION_RATE(agent, 1.0);
     if macros::is_excute(agent) {
         WorkModule::sub_int(agent.module_accessor, param::REFLET_INT_WIND_CONSUME_POINT, *FIGHTER_REFLET_INSTANCE_WORK_ID_INT_SPECIAL_HI_CURRENT_POINT);
         if WorkModule::get_int(agent.module_accessor, *FIGHTER_REFLET_INSTANCE_WORK_ID_INT_SPECIAL_HI_CURRENT_POINT) <= 0 {

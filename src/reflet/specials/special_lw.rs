@@ -11,6 +11,7 @@ use crate::reflet::{
 
 //status
 // moved durability consumption to motion
+// holding special extends grab-box active frames
 unsafe extern "C" fn special_lw_status_main(agent: &mut L2CFighterCommon) -> L2CValue {
     //update hud
     agent.clear_lua_stack();
@@ -28,10 +29,11 @@ unsafe extern "C" fn special_lw_status_main(agent: &mut L2CFighterCommon) -> L2C
     //set vars
     WorkModule::set_int64(agent.module_accessor, hash40("special_lw_start") as i64, *FIGHTER_REFLET_STATUS_COMMON_INT_MOTION_KIND_GROUND);
     WorkModule::set_int64(agent.module_accessor, hash40("special_air_lw_start") as i64, *FIGHTER_REFLET_STATUS_COMMON_INT_MOTION_KIND_AIR);
-    // WorkModule::set_int64(agent.module_accessor, *FIGHTER_KINETIC_TYPE_REFLET_SPECIAL_LW as i64, *FIGHTER_REFLET_STATUS_COMMON_INT_KINETIC_GROUND);
-    // WorkModule::set_int64(agent.module_accessor, *FIGHTER_KINETIC_TYPE_REFLET_SPECIAL_AIR_LW as i64, *FIGHTER_REFLET_STATUS_COMMON_INT_KINETIC_AIR);
+    WorkModule::set_int64(agent.module_accessor, *FIGHTER_KINETIC_TYPE_REFLET_SPECIAL_LW as i64, *FIGHTER_REFLET_STATUS_COMMON_INT_KINETIC_GROUND);
+    WorkModule::set_int64(agent.module_accessor, *FIGHTER_KINETIC_TYPE_REFLET_SPECIAL_AIR_LW as i64, *FIGHTER_REFLET_STATUS_COMMON_INT_KINETIC_AIR);
     // WorkModule::set_int64(agent.module_accessor, *GROUND_CORRECT_KIND_GROUND_CLIFF_STOP as i64, *FIGHTER_REFLET_STATUS_COMMON_INT_CORRECT_GROUND);
     // WorkModule::set_int64(agent.module_accessor, *GROUND_CORRECT_KIND_AIR as i64, *FIGHTER_REFLET_STATUS_COMMON_INT_CORRECT_AIR);
+    VarModule::off_flag(agent.module_accessor, status::REFLET_FLAG_SPECIAL_LW_HOLD);
     WorkModule::set_int(agent.module_accessor,  0x50000000,*FIGHTER_REFLET_STATUS_SPECIAL_LW_CAPTURE_INT_OBJECT_ID);
     AttackModule::set_overlap_hit(agent.module_accessor, true);
     //motion and kinetic
@@ -70,14 +72,46 @@ unsafe fn special_lw_status_main_loop(agent: &mut L2CFighterCommon) -> bool {
         agent.change_status(FIGHTER_REFLET_STATUS_KIND_SPECIAL_LW_CAPTURE.into(), false.into());
         return true.into()
     }
-    if MotionModule::is_end(agent.module_accessor) {
-        agent.change_status(FIGHTER_REFLET_STATUS_KIND_SPECIAL_LW_END.into(), false.into());
-        return true.into()
+
+
+    if VarModule::is_flag(agent.module_accessor, status::REFLET_FLAG_SPECIAL_LW_HOLD) {
+        if ControlModule::check_button_on(agent.module_accessor, *CONTROL_PAD_BUTTON_SPECIAL) == false 
+        || WorkModule::get_int(agent.module_accessor, *FIGHTER_REFLET_INSTANCE_WORK_ID_INT_SPECIAL_LW_CURRENT_POINT) <= 0 {
+            agent.change_status(FIGHTER_REFLET_STATUS_KIND_SPECIAL_LW_END.into(), false.into());
+            return true.into()
+        }
+        if VarModule::get_int(agent.module_accessor, status::REFLET_INT_SPECIAL_LW_HOLD_COUNT) <= 0 {
+            VarModule::set_int(agent.module_accessor, status::REFLET_INT_SPECIAL_LW_HOLD_COUNT, param::REFLET_INT_SPECIAL_LW_HOLD_FRAME);
+            WorkModule::sub_int(agent.module_accessor, param::REFLET_INT_DARK_HOLD_CONSUME_POINT, *FIGHTER_REFLET_INSTANCE_WORK_ID_INT_SPECIAL_LW_CURRENT_POINT);
+            if WorkModule::get_int(agent.module_accessor, *FIGHTER_REFLET_INSTANCE_WORK_ID_INT_SPECIAL_LW_CURRENT_POINT) <= 0 {
+                FighterSpecializer_Reflet::set_flag_to_table(agent.module_accessor as *mut FighterModuleAccessor, *FIGHTER_REFLET_MAGIC_KIND_RIZAIA, true, *FIGHTER_REFLET_INSTANCE_WORK_ID_INT_THROWAWAY_TABLE);
+            }
+        }else {
+            VarModule::dec_int(agent.module_accessor, status::REFLET_INT_SPECIAL_LW_HOLD_COUNT);
+        }
+    }else if MotionModule::is_end(agent.module_accessor) {
+        if ControlModule::check_button_on(agent.module_accessor, *CONTROL_PAD_BUTTON_SPECIAL) == false 
+        || WorkModule::get_int(agent.module_accessor, *FIGHTER_REFLET_INSTANCE_WORK_ID_INT_SPECIAL_LW_CURRENT_POINT) <= 0 {
+            agent.change_status(FIGHTER_REFLET_STATUS_KIND_SPECIAL_LW_END.into(), false.into());
+            return true.into()
+        }
+        VarModule::on_flag(agent.module_accessor, status::REFLET_FLAG_SPECIAL_LW_HOLD);
+        if agent.global_table[global_table::SITUATION_KIND].get_i32() == *SITUATION_KIND_GROUND {
+            KineticModule::change_kinetic(agent.module_accessor, *FIGHTER_KINETIC_TYPE_GROUND_STOP);
+            MotionModule::change_motion(agent.module_accessor, Hash40::new("special_lw_hold"), 0.0, 1.0, false, 0.0, false, false);
+        }else {
+            MotionModule::change_motion(agent.module_accessor, Hash40::new("special_air_lw_hold"), 0.0, 1.0, false, 0.0, false, false);
+        }
+        WorkModule::set_int64(agent.module_accessor, hash40("special_lw_hold") as i64, *FIGHTER_REFLET_STATUS_COMMON_INT_MOTION_KIND_GROUND);
+        WorkModule::set_int64(agent.module_accessor, hash40("special_air_lw_hold") as i64, *FIGHTER_REFLET_STATUS_COMMON_INT_MOTION_KIND_AIR);
+        WorkModule::set_int64(agent.module_accessor, *FIGHTER_KINETIC_TYPE_GROUND_STOP as i64, *FIGHTER_REFLET_STATUS_COMMON_INT_KINETIC_GROUND);
     }
+
     //air-ground transition
     if agent.global_table[global_table::SITUATION_KIND].get_i32() != agent.global_table[global_table::PREV_SITUATION_KIND].get_i32() {
         if agent.global_table[global_table::SITUATION_KIND].get_i32() == *SITUATION_KIND_GROUND {
-            KineticModule::change_kinetic(agent.module_accessor, *FIGHTER_KINETIC_TYPE_REFLET_SPECIAL_LW);
+            let kinetic = WorkModule::get_int64(agent.module_accessor, *FIGHTER_REFLET_STATUS_COMMON_INT_KINETIC_GROUND);
+            KineticModule::change_kinetic(agent.module_accessor, kinetic as i32);
             agent.set_situation(SITUATION_KIND_GROUND.into());
             GroundModule::correct(agent.module_accessor, GroundCorrectKind(*GROUND_CORRECT_KIND_GROUND_CLIFF_STOP));
             let motion = WorkModule::get_int64(agent.module_accessor, *FIGHTER_REFLET_STATUS_COMMON_INT_MOTION_KIND_GROUND);
@@ -86,7 +120,8 @@ unsafe fn special_lw_status_main_loop(agent: &mut L2CFighterCommon) -> bool {
             lua_args!(agent, MA_MSC_CMD_EFFECT_LANDING_EFFECT, hash40("sys_landing_smoke"), hash40("top"), 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.5, false, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
             sv_module_access::effect(agent.lua_state_agent);
         }else {
-            KineticModule::change_kinetic(agent.module_accessor, *FIGHTER_KINETIC_TYPE_REFLET_SPECIAL_AIR_LW);
+            let kinetic = WorkModule::get_int64(agent.module_accessor, *FIGHTER_REFLET_STATUS_COMMON_INT_KINETIC_AIR);
+            KineticModule::change_kinetic(agent.module_accessor, kinetic as i32);
             agent.set_situation(SITUATION_KIND_AIR.into());
             GroundModule::correct(agent.module_accessor, GroundCorrectKind(*GROUND_CORRECT_KIND_AIR));
             let motion = WorkModule::get_int64(agent.module_accessor, *FIGHTER_REFLET_STATUS_COMMON_INT_MOTION_KIND_AIR);
@@ -115,28 +150,32 @@ unsafe extern "C" fn special_lw_capture_status_main(agent: &mut L2CFighterCommon
     let original = smashline::original_status(Main, agent, *FIGHTER_REFLET_STATUS_KIND_SPECIAL_LW_CAPTURE);
     original(agent)
 }
+// no longer enters special-fall if successful
+unsafe extern "C" fn special_lw_end_status_main(agent: &mut L2CFighterCommon) -> L2CValue {
+    WorkModule::off_flag(agent.module_accessor, *FIGHTER_REFLET_STATUS_SPECIAL_LW_END_FLAG_HIT);
+    let original = smashline::original_status(Main, agent, *FIGHTER_REFLET_STATUS_KIND_SPECIAL_LW_END);
+    original(agent)
+}
 //motion
 // comes out faster and lasts longer
 // only uses duability after attack comes out
 unsafe extern "C" fn special_lw_game(agent: &mut L2CAgentBase) {
     macros::FT_MOTION_RATE(agent, 0.33);//0.7
     wait(agent.lua_state_agent, 20.0);
+    macros::FT_MOTION_RATE(agent, 2.0);
     if WorkModule::is_flag(agent.module_accessor, *FIGHTER_REFLET_INSTANCE_WORK_ID_FLAG_SPECIAL_FAILURE) == false {
-        macros::FT_MOTION_RATE(agent, 20.0);
         if macros::is_excute(agent) {
-            WorkModule::sub_int(agent.module_accessor, param::REFLET_INT_DARK_CONSUME_POINT, *FIGHTER_REFLET_INSTANCE_WORK_ID_INT_SPECIAL_LW_CURRENT_POINT);
+            WorkModule::sub_int(agent.module_accessor, param::REFLET_INT_DARK_START_CONSUME_POINT, *FIGHTER_REFLET_INSTANCE_WORK_ID_INT_SPECIAL_LW_CURRENT_POINT);
             if WorkModule::get_int(agent.module_accessor, *FIGHTER_REFLET_INSTANCE_WORK_ID_INT_SPECIAL_LW_CURRENT_POINT) <= 0 {
                 FighterSpecializer_Reflet::set_flag_to_table(agent.module_accessor as *mut FighterModuleAccessor, *FIGHTER_REFLET_MAGIC_KIND_RIZAIA, true, *FIGHTER_REFLET_INSTANCE_WORK_ID_INT_THROWAWAY_TABLE);
             }
             macros::CATCH(agent, 0, Hash40::new("top"), 7.0, 0.0, 10.0, 14.0, None, None, None, *FIGHTER_STATUS_KIND_CATCHED_REFLET, *COLLISION_SITUATION_MASK_G);
             macros::CATCH(agent, 1, Hash40::new("top"), 4.2, 0.0, 10.0, 14.0, Some(0.0), Some(10.0), Some(11.2), *FIGHTER_STATUS_KIND_CATCHED_REFLET, *COLLISION_SITUATION_MASK_A);
         }
-    }else {
-        macros::FT_MOTION_RATE(agent, 2.0);
     }
 }
 // added poison effect 
-unsafe extern "C" fn special_lw_game_capture(agent: &mut L2CAgentBase) {
+unsafe extern "C" fn special_lw_capture_game(agent: &mut L2CAgentBase) {
     if macros::is_excute(agent) {
         macros::ATTACK_ABS(agent, *FIGHTER_ATTACK_ABSOLUTE_KIND_CATCH, 0, 0.0, 60, 100, 0, 0, 0.0, 1.0, *ATTACK_LR_CHECK_F, 0.0, true, Hash40::new("collision_attr_normal"), *ATTACK_SOUND_LEVEL_S, *COLLISION_SOUND_ATTR_NONE, *ATTACK_REGION_THROW);
     }
@@ -152,11 +191,31 @@ unsafe extern "C" fn special_lw_game_capture(agent: &mut L2CAgentBase) {
         // wait(agent.lua_state_agent, 1.0);
     // }
 }
-// no longer enters special-fall if successful
-unsafe extern "C" fn special_lw_end_status_main(agent: &mut L2CFighterCommon) -> L2CValue {
-    WorkModule::off_flag(agent.module_accessor, *FIGHTER_REFLET_STATUS_SPECIAL_LW_END_FLAG_HIT);
-    let original = smashline::original_status(Main, agent, *FIGHTER_REFLET_STATUS_KIND_SPECIAL_LW_END);
-    original(agent)
+// new motion scripts for holding down-special
+unsafe extern "C" fn special_lw_hold_eff(agent: &mut L2CAgentBase) {
+    loop{
+        if macros::is_excute(agent) {
+            // macros::EFFECT_FOLLOW(agent, Hash40::new("reflet_rizaia_capture"), Hash40::new("top"), 0, 5, 15, 0, 0, 0, 1, true);
+            macros::EFFECT_FOLLOW(agent, Hash40::new("reflet_rizaia"), Hash40::new("top"), 0, 5, 14, 0, 0, 0, 1, true);
+        }
+        wait(agent.lua_state_agent, 15.0);
+    }
+}
+unsafe extern "C" fn special_lw_hold_snd(agent: &mut L2CAgentBase) {
+    loop {
+        if macros::is_excute(agent) {
+            // macros::PLAY_SE(agent, Hash40::new("se_reflet_appeal_s01"));
+            macros::PLAY_SE(agent, Hash40::new("se_common_fire_s_damage"));
+        }
+        wait(agent.lua_state_agent, 8.0);
+    }
+}
+unsafe extern "C" fn special_lw_hold_exp(agent: &mut L2CAgentBase) {
+    if macros::is_excute(agent) {
+        ItemModule::set_have_item_visibility(agent.module_accessor, false, 0);
+        slope!(agent, *MA_MSC_CMD_SLOPE_SLOPE, *SLOPE_STATUS_LR);
+        ControlModule::set_rumble(agent.module_accessor, Hash40::new("rbkind_erase"), 0, false, *BATTLE_OBJECT_ID_INVALID as u32);
+    }
 }
 
 
@@ -168,6 +227,14 @@ pub fn install(agent: &mut smashline::Agent) {
     //motion
     agent.game_acmd("game_speciallwstart", special_lw_game);
     agent.game_acmd("game_specialairlwstart", special_lw_game);
-    agent.game_acmd("game_speciallwcapture", special_lw_game_capture);
-    agent.game_acmd("game_specialairlwcapture", special_lw_game_capture);
+
+    agent.game_acmd("game_speciallwcapture", special_lw_capture_game);
+    agent.game_acmd("game_specialairlwcapture", special_lw_capture_game);
+    
+    agent.effect_acmd("effect_speciallwhold", special_lw_hold_eff);
+    agent.effect_acmd("effect_specialairlwhold", special_lw_hold_eff);
+    agent.sound_acmd("sound_speciallwhold", special_lw_hold_snd);
+    agent.sound_acmd("sound_specialairlwhold", special_lw_hold_snd);
+    agent.expression_acmd("expression_speciallwhold", special_lw_hold_exp);
+    agent.expression_acmd("expression_specialairlwhold", special_lw_hold_exp);
 }

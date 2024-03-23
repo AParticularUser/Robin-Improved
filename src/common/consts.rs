@@ -9,7 +9,7 @@ pub mod global_table {
     // pub const IS_STOP:                         i32 = 0x8;
     // pub const STATUS_KIND_INTERRUPT:           i32 = 0x9;
     pub const PREV_STATUS_KIND:                i32 = 0xA;
-    // pub const STATUS_KIND:                     i32 = 0xB;
+    pub const STATUS_KIND:                     i32 = 0xB;
     // pub const STATUS_COUNT:                    i32 = 0xC;
 
     // pub const STATUS_FRAME:                    i32 = 0xE;
