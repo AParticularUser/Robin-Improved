@@ -12,6 +12,9 @@ use crate::reflet::{
 // a+b smash always on for neutral-air
 // moved durability consumption to motion
 unsafe extern "C" fn attack_air_status_main(agent: &mut L2CFighterCommon) -> L2CValue {
+    if WorkModule::is_flag(agent.module_accessor, *FIGHTER_INSTANCE_WORK_ID_FLAG_JUMP_MINI_ATTACK) {
+        DamageModule::add_damage(agent.module_accessor, 0.1, 0);
+    }
     agent.sub_attack_air();
     let motion = WorkModule::get_int64(agent.module_accessor, *FIGHTER_STATUS_ATTACK_AIR_WORK_INT_MOTION_KIND);
     if [
@@ -27,11 +30,47 @@ unsafe extern "C" fn attack_air_status_main(agent: &mut L2CFighterCommon) -> L2C
         FighterSpecializer_Reflet::change_hud_kind(fighter, *FIGHTER_REFLET_MAGIC_KIND_SWORD);
         if WorkModule::get_int(agent.module_accessor, *FIGHTER_REFLET_INSTANCE_WORK_ID_INT_THUNDER_SWORD_CURRENT_POINT) > 0 {
             //turn sword on/off
-            // ControlModule::get_flick_no_reset_x(agent.module_accessor);
-            // ControlModule::get_flick_no_reset_y(agent.module_accessor);
-            if WorkModule::is_flag(agent.module_accessor, *FIGHTER_REFLET_INSTANCE_WORK_ID_FLAG_AIR_SMASH)
-            || ControlModule::check_button_on(agent.module_accessor, *CONTROL_PAD_BUTTON_CSTICK_ON) 
-            || ControlModule::check_button_on(agent.module_accessor, *CONTROL_PAD_BUTTON_SPECIAL) {
+            if motion == smash::hash40("attack_air_hi")
+            && WorkModule::is_flag(agent.module_accessor, *FIGHTER_REFLET_INSTANCE_WORK_ID_FLAG_AIR_SMASH)
+            && ControlModule::check_button_on(agent.module_accessor, *CONTROL_PAD_BUTTON_CSTICK_ON) == false 
+            && ControlModule::check_button_on(agent.module_accessor, *CONTROL_PAD_BUTTON_SMASH) == false {
+                let flick_level = FighterControlModuleImpl::get_param_attack_hi4_flick_y(agent.module_accessor) as i32;//0,1,2
+                let flick_normal = WorkModule::get_param_int(agent.module_accessor, hash40("common"), hash40("attack_hi4_flick_y"));
+                let flick_easy = WorkModule::get_param_int(agent.module_accessor, hash40("common"),  hash40("attack_hi4_flick_y_easy"));
+                let flick_hard = WorkModule::get_param_int(agent.module_accessor, hash40("common"),  hash40("attack_hi4_flick_y_hard"));
+                let flick_count = ControlModule::get_flick_no_reset_y(agent.module_accessor);
+                let flick_frame : i32;
+                if flick_level == 0 {
+                    flick_frame = flick_hard;
+                }else if flick_level == 1 {
+                    flick_frame = flick_normal;
+                }else {
+                    flick_frame = flick_easy;
+                }
+                if flick_frame <= flick_count {
+                    WorkModule::off_flag(agent.module_accessor, *FIGHTER_REFLET_INSTANCE_WORK_ID_FLAG_AIR_SMASH);
+                }
+            }else if motion == smash::hash40("attack_air_lw")
+            && WorkModule::is_flag(agent.module_accessor, *FIGHTER_REFLET_INSTANCE_WORK_ID_FLAG_AIR_SMASH) == false
+            && ControlModule::check_button_on(agent.module_accessor, *CONTROL_PAD_BUTTON_CSTICK_ON) == false {
+                let flick_level = FighterControlModuleImpl::get_param_attack_lw4_flick_y(agent.module_accessor) as i32;//0,1,2
+                let flick_normal = WorkModule::get_param_int(agent.module_accessor, hash40("common"), hash40("attack_lw4_flick_y"));
+                let flick_easy = WorkModule::get_param_int(agent.module_accessor, hash40("common"),  hash40("attack_lw4_flick_y_easy"));
+                let flick_hard = WorkModule::get_param_int(agent.module_accessor, hash40("common"),  hash40("attack_lw4_flick_y_hard"));
+                let flick_count = ControlModule::get_flick_no_reset_y(agent.module_accessor);
+                let flick_frame : i32;
+                if flick_level == 0 {
+                    flick_frame = flick_hard;
+                }else if flick_level == 1 {
+                    flick_frame = flick_normal;
+                }else {
+                    flick_frame = flick_easy;
+                }
+                if flick_frame > flick_count {
+                    WorkModule::on_flag(agent.module_accessor, *FIGHTER_REFLET_INSTANCE_WORK_ID_FLAG_AIR_SMASH);
+                }
+            }
+            if WorkModule::is_flag(agent.module_accessor, *FIGHTER_REFLET_INSTANCE_WORK_ID_FLAG_AIR_SMASH) {
                 WorkModule::set_int(agent.module_accessor, 1, *FIGHTER_REFLET_STATUS_ATTACK_AIR_INT_THUNDER_SWORD);
                 thunder_sword_on(agent.module_accessor);
             }else {
@@ -89,7 +128,8 @@ pub unsafe fn attack_air_status_main_loop(agent: &mut L2CFighterCommon) -> L2CVa
     && WorkModule::is_flag(agent.module_accessor, *FIGHTER_REFLET_INSTANCE_WORK_ID_FLAG_THUNDER_SWORD_ON) == false
     && WorkModule::get_int(agent.module_accessor, *FIGHTER_REFLET_INSTANCE_WORK_ID_INT_THUNDER_SWORD_CURRENT_POINT) > 0
     && VarModule::get_int(agent.module_accessor, status::REFLET_INT_ATTACK_AIR_N_AB_SMASH_COUNT) <= param::REFLET_INT_ATTACK_AIR_N_AB_SMASH_FRAME {
-        if ControlModule::check_button_on(agent.module_accessor, *CONTROL_PAD_BUTTON_SPECIAL) {
+        if ControlModule::check_button_on(agent.module_accessor, *CONTROL_PAD_BUTTON_SPECIAL) 
+        || ControlModule::check_button_on(agent.module_accessor, *CONTROL_PAD_BUTTON_SMASH) {
             thunder_sword_on(agent.module_accessor);
             notify_event_msc_cmd!(agent, Hash40::new_raw(0x20cbc92683), 1, *FIGHTER_LOG_DATA_INT_ATTACK_NUM_KIND, *FIGHTER_LOG_ATTACK_KIND_ADDITIONS_ATTACK_08 - 1);
             notify_event_msc_cmd!(agent, Hash40::new_raw(0x3a40337e2c), *FIGHTER_LOG_ATTACK_KIND_ADDITIONS_ATTACK_08 - 1);
